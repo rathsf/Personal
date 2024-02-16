@@ -2,7 +2,7 @@ library(readxl)
 source('./auxFns/setup.R')
 
 
-df <- read_excel('./Elantra_Market/Elantra.xlsx', sheet = 2) #%>% select(-1)
+df <- read_excel('./Elantra_Market/Elantra.xlsx', sheet = 'Autolist')
 
 df <- df %>%
     filter(!is.na(Hyundai)) %>% #print(n = 500)
@@ -29,24 +29,59 @@ df <- df %>% mutate(
     unite(model, make, model, model2, sep = ' ')
 
 
+df1 <- df %>% select(-trim, -days_listed) %>% mutate(source = 'Autolist')
+
+
+
+
+df <- read_excel('./Elantra_Market/Elantra.xlsx', sheet = 'OfferUp')
+
+df <- df %>%
+    filter(!is.na(Hyundai)) %>% 
+    mutate(
+        column = ifelse(str_detect(lead(Hyundai), "miles"), "price", 'dummy'),
+        column = ifelse(str_detect(lead(Hyundai, 2), "miles"), "title", column),
+        column = ifelse(str_detect(Hyundai, "miles"), "miles", column),
+        column = ifelse(str_detect(Hyundai, ", "), "Location", column)
+        ) %>%
+        filter(column %in% c('title', 'miles', 'Location', 'price')) %>% 
+    pivot_wider(names_from = column, values_from = Hyundai)
+
+df <- df %>% unnest(colnames(df))
+
+df <- df %>% mutate(
+        price = as.numeric(price),
+        miles = as.numeric(str_remove(miles, "k miles")) * 1000,
+    ) %>%
+    separate(title, into = c('year', 'make', 'model'), extra = 'merge') %>%
+    unite(model, make, model, sep = ' ')
+
+df2 <- df %>% distinct() %>% mutate(source = 'OfferUp')
+
+df <- bind_rows(df1, df2)
+
 df <- df %>% mutate(
     frac_price = (price / max(price) * 100),
     frac_miles = (min(miles) / miles * 100),
-    #time_driven = 2024 - as.numeric(year),
-    #miles_per_year = miles / time_driven,
-
+    # time_driven = 2024 - as.numeric(year),
+    # miles_per_year = miles / time_driven,
     price_mile_ratio = frac_price / frac_miles
 ) %>% arrange(price_mile_ratio)
+
+
+
+
+
+
 
 
 df %>% ggplot(aes(x = price_mile_ratio)) + geom_histogram(binwidth = 0.2)
 
 
-df %>% ggplot(aes(x = price, y = price_mile_ratio, size = miles, color = miles)) + 
-    #geom_hline(yintercept = c(10000, 15000), color = 'grey80') +
-    geom_point() + 
+df %>% ggplot(aes(x = price, y = price_mile_ratio, size = miles, color = miles)) +
+    geom_vline(xintercept = c(10000, 16000), color = 'grey95', size = 2) +
+    geom_smooth(method = "gam", se = FALSE, size = 1, color = "darkred") +
+    geom_point(data = filter(df, source == "OfferUp"), shape = 1, size = 10, color = "darkorange") +
+    geom_point() +
     scale_color_viridis() +
-    geom_smooth(method = 'gam', se = FALSE, size = 1) +
     style
-
-
