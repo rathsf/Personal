@@ -19,6 +19,7 @@ mode20 <- c(
 )
 
 `%notin%` <- Negate(`%in%`)
+
 options(
     scipen = 999,
     tibble.print_max = 65,

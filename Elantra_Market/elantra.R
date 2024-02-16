@@ -1,30 +1,8 @@
-library(tidyverse)
 library(readxl)
-library(viridis)
+source('./auxFns/setup.R')
 
-`%notin%` <- Negate(`%in%`)
 
-options(
-    scipen = 999,
-    tibble.print_max = 65,
-    tibble.print_min = 30,
-    width = 135,
-    tibble.max_extra_cols = 10,
-    pillar.min_title_chars = 8
-)
-
-style <- theme(
-    text = element_text(family = "Lato", size = 20),
-    title = element_text(face = "bold"),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.background = element_rect(fill = "white", color = "grey65", linewidth = 2),
-    strip.background = element_blank(),
-    legend.key = element_blank()
-)
-
-df <- read_excel("~/Downloads/Elantra.xlsx", sheet = 2) #%>% select(-1)
-
+df <- read_excel('./Elantra_Market/Elantra.xlsx', sheet = 2) #%>% select(-1)
 
 df <- df %>%
     filter(!is.na(Hyundai)) %>% #print(n = 500)
@@ -36,10 +14,8 @@ df <- df %>%
         column = ifelse(str_detect(lead(Hyundai), "est. "), "price", column),
         column = ifelse(str_detect(lead(Hyundai), "similar"), "comparison", column)
     ) %>% 
-    #filter(column %in% c('title', 'miles', 'price')) %>%
-    filter(column != 'dummy' & column != 'comparison') %>%     
+    filter(column %in% c('title', 'miles', 'Location', 'days_listed', 'price')) %>% 
     pivot_wider(names_from = column, values_from = Hyundai)
-    
     
 df <- df %>% unnest(colnames(df))
     
